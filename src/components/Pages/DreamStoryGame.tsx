@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { ArrowLeft, Trophy, Moon, Sun, Coffee, Smartphone, Bed, Volume2, VolumeX, Star, Award, Heart, Users, Briefcase, Home, Dumbbell, Utensils, Droplets, Bath, Tv, Book, ChevronLeft, ChevronRight, Clock, Save, Pause, Play } from 'lucide-react';
+import { ArrowLeft, Trophy, Moon, Sun, Coffee, Smartphone, Bed, Volume2, VolumeX, Star, Award, Heart, Users, Briefcase, Home, Dumbbell, Utensils, Droplets, Bath, Tv, Book, ChevronLeft, ChevronRight, Clock, Save, Pause, Play, Gamepad2, ArrowRight } from 'lucide-react';
 import { useTheme } from '../../hooks/useTheme';
 
 interface Situacao {
@@ -123,6 +123,7 @@ const DreamStoryGame: React.FC<DreamStoryGameProps> = ({ onBack }) => {
   }>({ show: false, factor: '', message: '' });
   
   const [lastDegradationDay, setLastDegradationDay] = useState(1);
+  const [showWelcome, setShowWelcome] = useState(true);
   
   const [gameState, setGameState] = useState<GameState>({
     score: 0,
@@ -484,7 +485,7 @@ const DreamStoryGame: React.FC<DreamStoryGameProps> = ({ onBack }) => {
 
   // Game time progression (1 second real = 15 minutes game time, 2 weeks total)
   useEffect(() => {
-    if (gameState.isPaused) return; // Don't progress time when paused
+    if (gameState.isPaused || showWelcome) return; // Don't progress time when paused or showing welcome
     
     gameTimeIntervalRef.current = setInterval(() => {
       setGameState(prev => {
@@ -541,12 +542,12 @@ const DreamStoryGame: React.FC<DreamStoryGameProps> = ({ onBack }) => {
         clearInterval(gameTimeIntervalRef.current);
       }
     };
-  }, []);
+  }, [showWelcome]);
 
   // Check for random situations - 10 situações distribuídas em 2 semanas
   useEffect(() => {
     const checkForSituacao = () => {
-      if (gameState.isPaused) return; // Don't check situations when paused
+      if (gameState.isPaused || showWelcome) return; // Don't check situations when paused or showing welcome
       if (showSituacao.show) return; // Don't show if already showing one
       
       const currentTime = gameState.gameTime;
@@ -586,12 +587,12 @@ const DreamStoryGame: React.FC<DreamStoryGameProps> = ({ onBack }) => {
 
     const interval = setInterval(checkForSituacao, 2000); // Check every 2 seconds
     return () => clearInterval(interval);
-  }, [gameState.gameTime, gameState.situacoesOcorridas, showSituacao.show, gameState.isPaused]);
+  }, [gameState.gameTime, gameState.situacoesOcorridas, showSituacao.show, gameState.isPaused, showWelcome]);
 
   // Progressive factor degradation system
   useEffect(() => {
     const checkDailyDegradation = () => {
-      if (gameState.isPaused || gameState.gameCompleted) return;
+      if (gameState.isPaused || gameState.gameCompleted || showWelcome) return;
       
       const currentDay = gameState.currentDay;
       
@@ -626,11 +627,11 @@ const DreamStoryGame: React.FC<DreamStoryGameProps> = ({ onBack }) => {
     
     const interval = setInterval(checkDailyDegradation, 1000); // Check every second
     return () => clearInterval(interval);
-  }, [gameState.currentDay, gameState.isPaused, gameState.gameCompleted, lastDegradationDay]);
+  }, [gameState.currentDay, gameState.isPaused, gameState.gameCompleted, lastDegradationDay, showWelcome]);
 
   // Check for critical states
   useEffect(() => {
-    if (gameState.isPaused || gameState.gameCompleted || showCriticalState.show) return;
+    if (gameState.isPaused || gameState.gameCompleted || showCriticalState.show || showWelcome) return;
     
     const { alex } = gameState;
     
@@ -657,7 +658,7 @@ const DreamStoryGame: React.FC<DreamStoryGameProps> = ({ onBack }) => {
       });
       setGameState(prev => ({ ...prev, isPaused: true }));
     }
-  }, [gameState.alex, gameState.isPaused, gameState.gameCompleted, showCriticalState.show]);
+  }, [gameState.alex, gameState.isPaused, gameState.gameCompleted, showCriticalState.show, showWelcome]);
 
   // Handle music play/pause
   useEffect(() => {
@@ -1097,7 +1098,55 @@ const DreamStoryGame: React.FC<DreamStoryGameProps> = ({ onBack }) => {
     setGameState(prev => ({ ...prev, musicEnabled: !prev.musicEnabled }));
   };
 
+  const handleWelcomeOk = () => {
+    setShowWelcome(false);
+  };
+
   const currentRoom = getCurrentRoom();
+
+  // Welcome Message Modal
+  if (showWelcome) {
+    return (
+      <div className={`h-screen flex flex-col items-center justify-center transition-colors duration-300 ${
+        isDark ? 'bg-slate-950' : 'bg-gradient-to-br from-white via-emerald-50/80 to-emerald-100/60'
+      }`}>
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className={`backdrop-blur-sm rounded-2xl p-6 border max-w-md w-full transition-colors duration-300 ${
+            isDark 
+              ? 'bg-slate-900/90 border-slate-800' 
+              : 'bg-white/95 border-emerald-200 shadow-lg'
+          }`}>
+            <div className="text-center">
+              <div className="w-16 h-16 bg-emerald-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Gamepad2 className="w-8 h-8 text-emerald-400" />
+              </div>
+              
+              <h2 className={`text-xl font-bold mb-4 transition-colors duration-300 ${
+                isDark ? 'text-white' : 'text-emerald-900'
+              }`}>
+                🌟 Bem-vindo ao Dream Story!
+              </h2>
+              
+              <p className={`text-sm mb-6 leading-relaxed transition-colors duration-300 ${
+                isDark ? 'text-slate-300' : 'text-emerald-700'
+              }`}>
+                Aqui você vai guiar Alex em busca de melhorar seu sono e sua saúde! 
+                Faça boas escolhas e boa sorte! 🍀
+              </p>
+              
+              <button
+                onClick={handleWelcomeOk}
+                className="bg-emerald-500 hover:bg-emerald-600 text-white px-8 py-3 rounded-xl font-bold transition-colors duration-200 flex items-center gap-2 mx-auto"
+              >
+                <span>OK, vamos começar!</span>
+                <ArrowRight className="w-5 h-5" />
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   // Critical state screen
   if (showCriticalState.show) {
